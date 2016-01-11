@@ -46,6 +46,30 @@ struct mkfs_disk_block {
 typedef struct mkfs_disk_block mkfs_disk_block;
 //----------------------------------------------------------------------------------------------------------------->
 
+//Main functions-------------------------------------------------------------start->
+void parse_path(const char* path, char* directory, char* filename, char* extension);
+void touch(char* path);
+
+int find_file(mkfs_directory_entry* dir, char* file_target, char* ext_target);
+int find_dir(mkfs_directory_entry* dir_struct, char* dir_name);
+
+int last_bitmap_index();
+int get_state(int block_idx);
+int get_bitmap_size();
+
+void change_bit(int i, int sign);
+void set(int i);
+void unset(int i);
+
+void allocate(int start_block, int num_blocks);
+void unallocate(int start_block, int num_blocks);
+
+void print_bitmap();
+void check_bitmap();
+
+int find_free_space(int num_blocks);
+//Main functions---------------------------------------------------------------end->
+
 static void *_init(struct fuse_conn_info * conn);
 static void _destroy(void *a);
 static int _getattr(const char *path, struct stat *stbuf);
