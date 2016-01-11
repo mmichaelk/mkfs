@@ -640,3 +640,101 @@ static int _read(const char *path, char *buf, size_t size, off_t offset, struct 
     fclose(f);
     return bytes_read;
 }
+
+static int _write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    printf("--------------------------------------------------------------------->WRITE: %s\n", path);
+    
+    char dir_targ[9];
+    char file_targ[9];
+    char ext_targ[4];
+
+    dir_targ[0] = 0;
+    file_targ[0] = 0;
+    ext_targ[0] = 0;
+    parse_path(path, dir_targ, file_targ, ext_targ);
+
+    touch(".disk");
+
+    //check to make sure path exists
+    mkfs_directory_entry cur_dir;
+    int dir_index = find_dir(&cur_dir, dir_targ);
+    if (dir_index == -1) return -ENOENT;
+
+    int file_index = find_file(&cur_dir, file_targ, ext_targ);
+    if (file_index == -1) return -ENOENT;
+
+    mkfs_file_directory cur_file = cur_dir.files[file_index];
+
+    if (size <= 0) return 0; //Why not?
+
+    if (offset > cur_file.fsize) return 0; //nothing left
+    
+    printf("--------------------------------------------------------------------->WRITE: Size of cur_file = %d\n", cur_file.fsize);
+    //calculates number of bytes the file
+    int new_bytes = (offset + size) - cur_file.fsize;
+    int new_blocks = 0;
+    
+    printf("--------------------------------------------------------------------->WRITE: New bytes needed: %d\n", new_bytes);
+    
+    int blocks_used = 0;
+    while (blocks_used * BLOCK_SIZE < cur_file.fsize) {
+        blocks_used++;
+    }
+
+    int bytes_left = (BLOCK_SIZE * blocks_used) - cur_file.fsize;
+    printf("--------------------------------------------------------------------->WRITE: Bytes availible in current block: %d\n", bytes_left);
+    
+    int i = new_bytes;
+    while (i > bytes_left) {
+        new_blocks++;
+        i -= BLOCK_SIZE;
+    }
+    
+    printf("--------------------------------------------------------------------->WRITE: New blocks needed: %d\n", new_blocks);
+    if (new_blocks > 0) {
+        int cur_blocks = cur_file.fsize / BLOCK_SIZE;
+        if (cur_file.fsize % BLOCK_SIZE != 0) {
+            cur_blocks++;
+        }
+        printf("--------------------------------------------------------------------->WRITE: Current blocks: %d\n", cur_blocks);
+        
+        //only unallocate space for files that have been allocated space!
+        printf("--------------------------------------------------------------------->WRITE: Start Block of current file: %d\n", cur_file.nStartBlock);
+        if (cur_file.nStartBlock != -1) {
+            unallocate(cur_file.nStartBlock, cur_blocks);
+        }
+
+        int new_start_loc = find_free_space(new_blocks + cur_blocks);
+        printf("--------------------------------------------------------------------->WRITE: Attempting to put file at %d\n", new_start_loc);
+        
+        if (new_start_loc == -1) { // then the space request is unsatisfiable via contiguous allocation
+            allocate(cur_file.nStartBlock, cur_blocks);
+            return -ENOSPC;
+        }
+        
+        allocate(new_start_loc, new_blocks + cur_blocks);
+        cur_dir.files[file_index].nStartBlock = new_start_loc;
+    }
+
+
+    //write the data
+    int write_index = cur_dir.files[file_index].nStartBlock * BLOCK_SIZE + offset;
+    printf("--------------------------------------------------------------------->WRITE: Bitmap ends at %d.  Writing at %d.\n", get_bitmap_size(), write_index);
+    
+    FILE* f = fopen(".disk", "r+b");
+    fseek(f, write_index, SEEK_SET);
+    fwrite(buf, size, 1, f);
+    fclose(f);
+
+    if (new_bytes > 0) {
+        cur_dir.files[file_index].fsize += new_bytes;
+    }
+
+    FILE* g = fopen(".dir", "r+b");
+    fseek(g, dir_index, SEEK_SET);
+    fwrite(&cur_dir, sizeof(cur_dir), 1, g);
+    fclose(g);
+
+    // print_bitmap();
+    return size;
+}
