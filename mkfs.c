@@ -747,3 +747,20 @@ static int _open(const char *path, struct fuse_file_info * fi) {
  
     return 0;
 }
+
+static int _flush (const char *path , struct fuse_file_info *fi) {
+	printf("--------------------------------------------------------------------->FLUSH: successfully\n");
+    (void) path;
+    (void) fi;
+
+    return 0;
+}
+
+static int _truncate(const char *path, off_t size) {
+    printf("--------------------------------------------------------------------->TRUNCATE: Truncated successfully\n");
+    
+    (void) path;
+    (void) size;
+
+    return 0;
+}
