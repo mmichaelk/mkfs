@@ -184,6 +184,30 @@ int get_bitmap_size() {
     fclose(f);
     return bitmap_blocks_needed;
 }
+
+void change_bit(int i, int sign) {
+    touch(".disk"); //just in case it wasn't precreated
+    FILE* f = fopen(".disk", "r+b");
+    
+    int byte_to_set = i / 8;
+    i = i % 8;
+    
+    fseek(f, byte_to_set, SEEK_SET);
+    
+    unsigned char curr_byte = 0;
+    fread(&curr_byte, sizeof(char), 1, f);
+    unsigned char operand = 1 << i;
+    if (sign == -1) { //if we are unsetting the bit
+        operand = ~operand;
+        curr_byte = curr_byte & operand;
+    } else { //if we are setting the bit
+        curr_byte = curr_byte | operand;
+    }
+    fseek(f, -1, SEEK_CUR);
+    fwrite(&curr_byte, sizeof(char), 1, f);
+    fclose(f);
+    return;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
