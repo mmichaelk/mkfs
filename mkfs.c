@@ -235,6 +235,26 @@ void unallocate(int start_block, int num_blocks) {
     }
 }
 
+//just for test
+void print_bitmap() {
+    printf("---------------------------------------------------------------------start->print_bitmap\n");
+    int i = 0;
+    touch(".disk"); //just in case it wasn't precreated
+    int size = last_bitmap_index(); //get the number of blocks in bitmap
+    for (i = 0; i <= size; i++) { //for each byte in each block
+        int this_bit = get_state(i);
+        printf("%u", this_bit); 
+        if (i % 20 == 19) {
+            printf("\n");
+        }
+        if (i % 512 == 511) {
+            printf("\n");
+        }
+    }
+    printf("-----------------------------------------------------------------------end->print_bitmap\n");
+    return;
+}
+
 //makes the bitmap if it doesnt exist
 void check_bitmap() {
     touch(".disk"); //just in case it wasn't precreated
@@ -254,6 +274,8 @@ void check_bitmap() {
     fclose(f);
     return;
 }
+
+
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
