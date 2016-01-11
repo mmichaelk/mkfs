@@ -234,6 +234,26 @@ void unallocate(int start_block, int num_blocks) {
         unset(i);
     }
 }
+
+//makes the bitmap if it doesnt exist
+void check_bitmap() {
+    touch(".disk"); //just in case it wasn't precreated
+    FILE* f = fopen(".disk", "r+b");
+    char first_char = 0;
+    fseek(f, 0, SEEK_SET);
+    fread(&first_char, sizeof(char), 1, f);
+    if (first_char == 0) { //then the beginning of the bitmap is zero and thus the bitmap does not exist
+        int bitmap_size = get_bitmap_size();
+        int i = 0;
+        printf("--------------------------------------------------------------------->Creating new bitmap of size %d\n", bitmap_size);
+        for (i = 0; i < bitmap_size; i++) {
+            set(i);
+        }
+        // print_bitmap();
+    }
+    fclose(f);
+    return;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
