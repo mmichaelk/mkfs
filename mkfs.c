@@ -445,3 +445,48 @@ static int _mkdir(const char *path, mode_t mode) {
     fclose(f);
     return 0;
 }
+
+static int _rmdir(const char *path) {
+    printf("--------------------------------------------------------------------->RMDIR: %s\n", path);
+
+    char dir_target[9];
+    char file_target[9];
+    char ext_target[4];
+
+    file_target[0] = 0;
+
+    parse_path(path, dir_target, file_target, ext_target);
+    
+    if (strlen(file_target) > 0) return -ENOTDIR;
+
+    touch(".dir"); //just in case it wasn't precreated
+
+    FILE* f = fopen(".dir", "r+b");
+
+    fseek(f, -sizeof(mkfs_directory_entry), SEEK_END);
+    int length = ftell(f);
+    struct mkfs_directory_entry temp_entry;
+    fread(&temp_entry, sizeof(temp_entry), 1, f);
+
+    //find the one to delete
+    fseek(f, 0, SEEK_SET); //go to begin
+    struct mkfs_directory_entry cur_dir;
+    fread(&cur_dir, sizeof(cur_dir), 1, f);
+   
+    //look for deletion target
+    while (strcmp(cur_dir.dname, path + 1) != 0 && !feof(f)) {
+        fread(&cur_dir, sizeof(cur_dir), 1, f);
+    }
+
+    //if we found deletion target, overwrite it with last element
+    if (strcmp(cur_dir.dname, path + 1) == 0) {
+        fseek(f, -sizeof(cur_dir), SEEK_CUR);
+        fwrite(&temp_entry, sizeof(cur_dir), 1, f);
+        fseek(f, 0, SEEK_SET);
+    } else {
+        fclose(f);
+        return -ENOENT;
+    }
+    fclose(f);
+    return 0;
+}
