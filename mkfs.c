@@ -366,3 +366,47 @@ static int _getattr(const char *path, struct stat * stbuf) {
     }
     return res;
 }
+
+static int _readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info * fi) {
+    printf("--------------------------------------------------------------------->READDIR: %s\n", path);
+    
+    (void) offset;
+    (void) fi;
+
+    touch(".dir"); //just in case it wasn't precreated
+
+    FILE* f = fopen(".dir", "r");
+    struct mkfs_directory_entry cur_dir;
+
+    if (strcmp(path, "/") == 0) {
+        filler(buf, ".", NULL, 0);
+        filler(buf, "..", NULL, 0);
+        while (fread(&cur_dir, sizeof(cur_dir), 1, f) > 0 && !feof(f)) {
+            filler(buf, cur_dir.dname, NULL, 0);
+        }
+    } else {
+        int found = 0;
+        while (fread(&cur_dir, sizeof(cur_dir), 1, f) > 0 && !feof(f)) {
+            if (strcmp(cur_dir.dname, path + 1) == 0) {
+                int i;
+                for (i = 0; i < cur_dir.nFiles; i++) {
+                    char full_name[13];
+                    full_name[0] = 0;
+                    strcat(full_name, cur_dir.files[i].fname);
+                    if (strlen(cur_dir.files[i].fext) > 0) {
+                        strcat(full_name, ".");
+                    }
+                    strcat(full_name, cur_dir.files[i].fext);
+                    filler(buf, full_name, NULL, 0);
+                }
+                found = 1;
+            }
+        }
+        if (!found) {
+            fclose(f);
+            return -ENOENT;
+        }
+    }
+    fclose(f);
+    return 0;
+}
