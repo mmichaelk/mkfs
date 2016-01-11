@@ -219,6 +219,21 @@ void unset(int i) { //set the bit to 0
     change_bit(i, -1);
     return;
 }
+
+void allocate(int start_block, int num_blocks) {
+    int i;
+    for (i = start_block; i < start_block + num_blocks; i++) {
+        set(i);
+    }
+}
+
+void unallocate(int start_block, int num_blocks) {
+    int i;
+    printf("--------------------------------------------------------------------->Unallocating %d starting at %d\n", num_blocks, start_block);
+    for (i = start_block; i < start_block + num_blocks; i++) {
+        unset(i);
+    }
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
