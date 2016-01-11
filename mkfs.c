@@ -410,3 +410,38 @@ static int _readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     fclose(f);
     return 0;
 }
+
+static int _mkdir(const char *path, mode_t mode) {
+    printf("--------------------------------------------------------------------->MKDIR: %s\n", path);
+
+    char dir_target[9];
+    char file_target[9];
+    char ext_target[4];
+
+    file_target[0] = 0;
+
+    parse_path(path, dir_target, file_target, ext_target);
+
+    if (strlen(dir_target) > 9) return -ENAMETOOLONG;
+    if (strlen(file_target) > 0) return -EPERM;
+    
+    touch(".dir"); //just in case it wasn't precreated
+
+    FILE* g = fopen(".dir", "r");
+    struct mkfs_directory_entry cur_dir;
+    
+    fread(&cur_dir, sizeof(cur_dir), 1, g);
+    while (strcmp(cur_dir.dname, path + 1) != 0 && fread(&cur_dir, sizeof(cur_dir), 1, g) > 0);
+    fclose(g);
+
+    if (strcmp(cur_dir.dname, path + 1) == 0) return -EEXIST;
+    
+    FILE* f = fopen(".dir", "a");
+    struct mkfs_directory_entry next_dir;
+    strcpy(next_dir.dname, path + 1);
+    next_dir.nFiles = 0;
+
+    fwrite(&next_dir, sizeof(next_dir),  1, f);
+    fclose(f);
+    return 0;
+}
