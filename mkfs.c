@@ -156,6 +156,21 @@ int last_bitmap_index() {
     fclose(f);
     return blocks_on_disk - 1;
 }
+
+//returns 1 if the block is allocated, otherwise 0
+int get_state(int block_idx) {
+	FILE* f = fopen(".disk", "r+b");
+	int byte_idx = block_idx / 8;
+	int bit_idx = block_idx % 8;
+	fseek(f, byte_idx, SEEK_SET);
+	unsigned char target_byte;
+	fread(&target_byte, sizeof(char), 1, f);
+	fclose(f);
+	unsigned char operand = 1 << bit_idx;
+	unsigned char result = target_byte & operand;
+	result = result >> bit_idx;
+	return result;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
