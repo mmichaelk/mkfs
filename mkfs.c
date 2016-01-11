@@ -311,3 +311,58 @@ static void *_init(struct fuse_conn_info * conn) {
 static void _destroy(void *a) {
     printf("--------------------------------------------------------------------->Filesystem has been destroyed!\n");
 }
+
+static int _getattr(const char *path, struct stat * stbuf) {
+    printf("--------------------------------------------------------------------->GETATTR: %s\n", path);
+
+    int res = 0;
+    memset(stbuf, 0, sizeof(struct stat));
+
+    touch(".dir"); //just in case it wasn't precreated
+
+    FILE* f = fopen(".dir", "r");
+
+    char dir_target[9];
+    char file_target[9];
+    char ext_target[4];
+
+    dir_target[0] = 0;
+    file_target[0] = 0;
+    ext_target[0] = 0;
+    parse_path(path, dir_target, file_target, ext_target);
+
+    struct mkfs_directory_entry cur_dir;
+    fread(&cur_dir, sizeof(cur_dir), 1, f);
+    
+    while (strcmp(cur_dir.dname, dir_target) != 0 && !feof(f)) {
+        int read = fread(&cur_dir, sizeof(cur_dir), 1, f);
+        if (read == 0) break;
+    }
+    fclose(f);
+
+    if (strcmp(cur_dir.dname, dir_target) == 0 || strcmp(path, "/") == 0) {
+        //if we are looking for directory attributes
+        if (strlen(file_target) == 0) {
+            stbuf->st_nlink = 2;
+            stbuf->st_mode = S_IFDIR | 0755;
+        } else { //if we are looking for a file which is there
+            int file_index = find_file(&cur_dir, file_target, ext_target);
+
+            if (file_index == -1) {
+                res = -ENOENT;
+            } else { //if we found file
+                stbuf->st_mode = S_IFREG | 0666;
+                stbuf->st_nlink = 1;
+                stbuf->st_size = cur_dir.files[file_index].fsize;
+                stbuf->st_blksize = 512;
+                stbuf->st_blocks = cur_dir.files[file_index].fsize / 512;
+                if (cur_dir.files[file_index].fsize % 512 != 0) {
+                    stbuf->st_blocks++;
+                }
+            }
+        }
+    } else {
+        res = -ENOENT;
+    }
+    return res;
+}
