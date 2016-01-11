@@ -208,6 +208,17 @@ void change_bit(int i, int sign) {
     fclose(f);
     return;
 }
+
+//wrappers for the change_bit
+void set(int i) { //set the bit to 1
+    change_bit(i, 1);
+    return;
+}
+
+void unset(int i) { //set the bit to 0
+    change_bit(i, -1);
+    return;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
