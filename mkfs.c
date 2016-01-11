@@ -275,7 +275,31 @@ void check_bitmap() {
     return;
 }
 
+//finds contiguous free blocks
+int find_free_space(int num_blocks) {
+    int run_start = -1;
+    int run_length = 0;
+    int cur_block = 0;
 
+    while (cur_block <= last_bitmap_index()) {
+        int this_bit = get_state(cur_block);
+        if (this_bit == 0) {
+            if (run_start == -1) {
+                run_start = cur_block;
+            }
+            run_length++;
+            if (run_length >= num_blocks) {
+                last_allocation_start = run_start;
+                return run_start;
+            }
+        } else if (this_bit == 1) {
+            run_length = 0;
+            run_start = -1;
+        }
+        cur_block++;
+    }
+    return -1;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
