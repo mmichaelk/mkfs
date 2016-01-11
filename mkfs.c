@@ -140,6 +140,11 @@ int find_dir(mkfs_directory_entry* dir_struct, char* dir_name) {
         return -1;
     }
 }
+
+void touch(char* path) {
+    FILE* f = fopen(path, "a");
+    fclose(f);
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
