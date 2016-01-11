@@ -490,3 +490,55 @@ static int _rmdir(const char *path) {
     fclose(f);
     return 0;
 }
+
+static int _mknod(const char *path, mode_t mode, dev_t dev) {
+    printf("--------------------------------------------------------------------->MKNOD: %s\n", path);
+
+    (void) mode;
+    (void) dev;
+
+    char dir_targ[9];
+    char file_targ[9];
+    char ext_targ[4];
+
+    ext_targ[0] = 0;
+    file_targ[0] = 0;
+    dir_targ[0] = 0;
+    parse_path(path, dir_targ, file_targ, ext_targ);
+
+    check_bitmap();
+
+    if (strlen(file_targ) > 8 || strlen(ext_targ) > 3 ) return -ENAMETOOLONG;
+    if (strlen(file_targ) == 0) return -EPERM; //if we are trying to create a file in root, parse path returns null for file and ext strings
+
+
+    mkfs_directory_entry cur_dir;
+    
+    //find directory, make sure it exists
+    int dir_idx = find_dir(&cur_dir, dir_targ);
+    if (dir_idx == -1) return -ENOENT;
+    
+    //make sure file does not exist
+    int file_idx = find_file(&cur_dir, file_targ, ext_targ);
+    if (file_idx != -1) return -EEXIST;
+
+    //make the file
+    int new_file_idx = cur_dir.nFiles;
+    if (new_file_idx > MAX_FILES_IN_DIR) return -EPERM; //if the directory is full return a permission error
+
+    strcpy(cur_dir.files[new_file_idx].fname, file_targ);
+    strcpy(cur_dir.files[new_file_idx].fext, ext_targ);
+    cur_dir.files[new_file_idx].fsize = 0;
+
+    int new_file_block = -1;
+    cur_dir.files[new_file_idx].nStartBlock = new_file_block;
+
+    cur_dir.nFiles++;
+
+    FILE* f = fopen(".dir", "r+b");
+    fseek(f, dir_idx, SEEK_SET);
+    fwrite(&cur_dir, sizeof(cur_dir), 1, f);
+
+    fclose(f);
+    return 0;
+}
