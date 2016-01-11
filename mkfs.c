@@ -145,6 +145,17 @@ void touch(char* path) {
     FILE* f = fopen(path, "a");
     fclose(f);
 }
+
+//return last index of block from bitmap
+int last_bitmap_index() {
+    touch(".disk"); //just in case it wasn't precreated
+    FILE* f = fopen(".disk", "r+b");
+    fseek(f, 0, SEEK_END); //set position of stream to end
+    int bytes_on_disk = ftell(f);
+    int blocks_on_disk = bytes_on_disk / 512;
+    fclose(f);
+    return blocks_on_disk - 1;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
