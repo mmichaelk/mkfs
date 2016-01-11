@@ -558,7 +558,7 @@ static int _unlink(const char *path) {
     if (!(strlen(file_target) > 0)) { //it is a directory
         return -EISDIR;
     }
-    
+
     struct stat stbuf;
     int attr = _getattr(path, &stbuf);
     if (attr != 0) {
@@ -592,4 +592,51 @@ static int _unlink(const char *path) {
     fwrite(&dir_struct, sizeof(dir_struct), 1, f);
     fclose(f);
     return 0;
+}
+
+static int _read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info * fi) {
+    printf("--------------------------------------------------------------------->READ: %s\n", path);
+    
+    (void) buf;
+    (void) offset;
+    (void) fi;
+    (void) path;
+
+    char dir_targ[9];
+    char file_targ[9];
+    char ext_targ[4];
+
+    dir_targ[0] = 0;
+    file_targ[0] = 0;
+    ext_targ[0] = 0;
+    parse_path(path, dir_targ, file_targ, ext_targ);
+
+    touch(".disk");
+
+    //check to make sure path exists
+    mkfs_directory_entry cur_dir;
+    int dir_exists = find_dir(&cur_dir, dir_targ);
+    if (dir_exists == -1) return -ENOENT;
+
+    int file_index = find_file(&cur_dir, file_targ, ext_targ);
+    if (file_index == -1) return -ENOENT;
+
+    mkfs_file_directory cur_file = cur_dir.files[file_index];
+    
+    if (size <= 0) return 0; //Why not?
+    
+    if (offset > cur_file.fsize) return 0; //nothing left
+    
+    //figure out where to read from
+    int read_index = cur_file.nStartBlock * 512 + offset;
+    int max_read = cur_file.fsize - offset;
+    if (max_read < size) size = max_read;
+    
+    //read in data
+    FILE* f = fopen(".disk", "rb");
+    fseek(f, read_index, SEEK_SET);
+    int bytes_read = fread(buf, 1, size, f);
+    printf("--------------------------------------------------------------------->READ: DBUG Read %d bytes\n", bytes_read);
+    fclose(f);
+    return bytes_read;
 }
