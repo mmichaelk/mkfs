@@ -542,3 +542,54 @@ static int _mknod(const char *path, mode_t mode, dev_t dev) {
     fclose(f);
     return 0;
 }
+
+static int _unlink(const char *path) {
+    printf("--------------------------------------------------------------------->UNLINK: %s\n", path);
+
+    char dir_target[9];
+    char file_target[9];
+    char ext_target[4];
+
+    dir_target[0] = 0;
+    file_target[0] = 0;
+    ext_target[0] = 0;
+    parse_path(path, dir_target, file_target, ext_target);
+
+    if (!(strlen(file_target) > 0)) { //it is a directory
+        return -EISDIR;
+    }
+    
+    struct stat stbuf;
+    int attr = _getattr(path, &stbuf);
+    if (attr != 0) {
+        return attr;
+    }
+    
+    mkfs_directory_entry dir_struct;
+    int dir_idx = find_dir(&dir_struct, dir_target);
+
+    if (dir_idx == -1) {
+        return -ENOENT;
+    }
+    
+    int file_index = find_file(&dir_struct, file_target, ext_target);
+    mkfs_file_directory the_file = dir_struct.files[file_index];
+    
+    if (the_file.fsize > 0) {
+        printf("--------------------------------------------------------------------->UNLINK: Deleting a file (%s) of size %d\n", the_file.fname, the_file.fsize);
+        int num_blocks = the_file.fsize / 512;
+        if (the_file.fsize % 512 != 0) {
+            num_blocks++;
+        }
+        unallocate(the_file.nStartBlock, num_blocks); //free the blocks it used
+    }
+
+    //removing all references to it in the .dir file
+    dir_struct.files[file_index] = dir_struct.files[dir_struct.nFiles - 1];
+    dir_struct.nFiles--;
+
+    FILE* f = fopen(".dir", "r+b");
+    fwrite(&dir_struct, sizeof(dir_struct), 1, f);
+    fclose(f);
+    return 0;
+}
