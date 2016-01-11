@@ -108,6 +108,18 @@ int main(int argc, char *argv[]) {
 void parse_path(const char* path, char* directory, char* filename, char* extension) {
     sscanf(path, "/%[^/]/%[^.].%s", directory, filename, extension);
 }
+
+//returns the index of a file in a directory
+int find_file(mkfs_directory_entry* dir, char* file_target, char* ext_target) {
+    int i;
+    for (i = 0; i < dir->nFiles; i++) {
+        mkfs_file_directory cur_file = dir->files[i];
+        if (strcmp(file_target, cur_file.fname) == 0 && strcmp(ext_target, cur_file.fext) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
