@@ -738,3 +738,12 @@ static int _write(const char *path, const char *buf, size_t size, off_t offset, 
     // print_bitmap();
     return size;
 }
+
+static int _open(const char *path, struct fuse_file_info * fi) {
+    printf("--------------------------------------------------------------------->OPEN: %s\n", path);
+
+    (void) path;
+    (void) fi;
+ 
+    return 0;
+}
