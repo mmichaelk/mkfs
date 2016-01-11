@@ -120,6 +120,26 @@ int find_file(mkfs_directory_entry* dir, char* file_target, char* ext_target) {
     }
     return -1;
 }
+
+//returns index of directory entry in .dir
+int find_dir(mkfs_directory_entry* dir_struct, char* dir_name) {
+    FILE* f = fopen(".dir", "rb");
+    fread(dir_struct, sizeof(*dir_struct), 1, f);
+    
+    while (strcmp(dir_struct->dname, dir_name) != 0 && !feof(f)) {
+        int read = fread(dir_struct, sizeof(*dir_struct), 1, f);
+        if (read == 0) break;
+    }
+    
+    if (strcmp(dir_struct->dname, dir_name) == 0) {
+        int result = ftell(f) - sizeof(*dir_struct);
+        fclose(f);
+        return result;
+    } else {
+        fclose(f);
+        return -1;
+    }
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
