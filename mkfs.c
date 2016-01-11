@@ -171,6 +171,19 @@ int get_state(int block_idx) {
 	result = result >> bit_idx;
 	return result;
 }
+
+//calculates size (in blocks) of bitmap
+int get_bitmap_size() {
+    touch(".disk"); //just in case it wasn't precreated
+    FILE* f = fopen(".disk", "r+b");
+    fseek(f, 0, SEEK_END);
+    int bytes_on_disk = ftell(f);
+    int blocks_on_disk = bytes_on_disk / 512; //keep as is to round down so you don't have a half sized block at end
+    int bitmap_bytes_needed = blocks_on_disk / 8 + 1;
+    int bitmap_blocks_needed = bitmap_bytes_needed / 512 + 1;
+    fclose(f);
+    return bitmap_blocks_needed;
+}
 //Implementation main functions--------------------------------------------------------------------------------end->
 
 static void *_init(struct fuse_conn_info * conn) {
