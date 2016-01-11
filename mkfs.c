@@ -104,6 +104,12 @@ int main(int argc, char *argv[]) {
     return fuse_main(argc, argv, &oper, NULL);
 }
 
+//Implementation main functions------------------------------------------------------------------------------start->
+void parse_path(const char* path, char* directory, char* filename, char* extension) {
+    sscanf(path, "/%[^/]/%[^.].%s", directory, filename, extension);
+}
+//Implementation main functions--------------------------------------------------------------------------------end->
+
 static void *_init(struct fuse_conn_info * conn) {
     printf("--------------------------------------------------------------------->MAX_FILES_IN_DIR = %d\n", MAX_FILES_IN_DIR);
     printf("--------------------------------------------------------------------->Filesystem has been initialized!\n");
